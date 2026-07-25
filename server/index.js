@@ -50,6 +50,24 @@ app.get("/api/health", (_request, response) => {
 
 app.use("/api/voice", voiceRoutes);
 
+// In production or when client/dist exists, serve compiled React SPA static files
+const clientDistPath = path.resolve(__dirname, "../client/client/dist");
+const rootClientDistPath = path.resolve(__dirname, "../client/dist");
+
+const staticDistPath = path.resolve(__dirname, "../client/dist");
+app.use(express.static(staticDistPath));
+
+app.use((req, res, next) => {
+  if (req.path.startsWith("/api")) {
+    return next();
+  }
+  res.sendFile(path.join(staticDistPath, "index.html"), (err) => {
+    if (err) {
+      next();
+    }
+  });
+});
+
 app.use((error, _request, response, _next) => {
   console.error(error);
   response.status(error.status || 500).json({
