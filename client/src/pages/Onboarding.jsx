@@ -203,8 +203,28 @@ export default function Onboarding({ onReady }) {
   const isCloning = status === "cloning";
   const [serverStatus, setServerStatus] = React.useState({ isMock: false, space: "" });
 
-  const handleRecordingReady = React.useCallback((rec) => {
-    setRecording(rec);
+  const handleRecordingReady = React.useCallback((blobArg, metaArg) => {
+    let blob = blobArg instanceof Blob ? blobArg : blobArg?.blob;
+    let duration = 0;
+    let isValid = false;
+
+    if (typeof metaArg === "number") {
+      duration = metaArg;
+      isValid = duration >= 10;
+    } else if (metaArg && typeof metaArg === "object") {
+      duration = metaArg.duration || 0;
+      isValid = metaArg.isValid !== undefined ? metaArg.isValid : duration >= 10;
+    } else if (blobArg && typeof blobArg === "object" && !(blobArg instanceof Blob)) {
+      blob = blobArg.blob;
+      duration = blobArg.duration || 0;
+      isValid = blobArg.isValid !== undefined ? blobArg.isValid : duration >= 10;
+    }
+
+    if (!isValid && duration >= 10) {
+      isValid = true;
+    }
+
+    setRecording({ blob: blob || blobArg, duration, isValid });
   }, []);
 
   const recordingDuration = recording?.duration || 0;
