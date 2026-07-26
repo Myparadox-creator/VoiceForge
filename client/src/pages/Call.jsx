@@ -45,6 +45,7 @@ export default function Call() {
       return "0.6";
     }
   });
+  const [activeText, setActiveText] = React.useState("");
 
   React.useEffect(() => {
     persistLanguage(language);
@@ -202,6 +203,8 @@ export default function Call() {
 
   async function handleSpeak(text, voice_settings_override) {
     if (!activeProfile?.voice_id) return;
+
+    setActiveText(text);
 
     try {
       const result = await speak({
@@ -510,6 +513,7 @@ export default function Call() {
           subtitlesEnabled={subtitlesEnabled}
           subtitleFontSize={subtitleFontSize}
           subtitleBgOpacity={subtitleBgOpacity}
+          activeText={activeText}
         />
       </div>
 
