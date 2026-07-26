@@ -507,6 +507,9 @@ export default function Call() {
           calibration={calibration}
           isCalibrating={isCalibrationOpen}
           avatarImage={avatarImage}
+          subtitlesEnabled={subtitlesEnabled}
+          subtitleFontSize={subtitleFontSize}
+          subtitleBgOpacity={subtitleBgOpacity}
         />
       </div>
 

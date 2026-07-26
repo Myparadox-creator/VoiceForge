@@ -52,9 +52,9 @@ USER node
 # Expose production port
 EXPOSE 3001
 
-# Container Healthcheck probing Express API health endpoint
+# Container Healthcheck probing Express API health endpoint dynamically using PORT
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
-  CMD wget --no-verbose --tries=1 --spider http://localhost:3001/api/health || exit 1
+  CMD wget -q -O - http://localhost:${PORT:-3001}/api/health || exit 1
 
-# Start production server
-CMD ["npm", "start"]
+# Start production server directly with node for proper SIGTERM signal forwarding
+CMD ["node", "server/index.js"]

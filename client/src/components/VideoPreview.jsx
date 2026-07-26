@@ -13,6 +13,10 @@ export default React.forwardRef(function VideoPreview({
   calibration = { xOffset: 0, yOffset: 0, scale: 1.0 },
   isCalibrating = false,
   avatarImage = null,
+  subtitlesEnabled = true,
+  subtitleFontSize = "medium",
+  subtitleBgOpacity = 0.6,
+  activeText = "",
 }, ref) {
   const videoRef = React.useRef(null);
   const animationRef = React.useRef(null);
@@ -29,10 +33,20 @@ export default React.forwardRef(function VideoPreview({
   const calibrationRef = React.useRef(calibration);
   const isCalibratingRef = React.useRef(isCalibrating);
 
+  const subtitlesEnabledRef = React.useRef(subtitlesEnabled);
+  const subtitleFontSizeRef = React.useRef(subtitleFontSize);
+  const subtitleBgOpacityRef = React.useRef(subtitleBgOpacity);
+  const activeTextRef = React.useRef(activeText);
+
   const [blurEnabled, setBlurEnabled] = React.useState(false);
   const segmenterRef = React.useRef(null);
   const isSegmentingRef = React.useRef(false);
   const maskCanvasRef = React.useRef(null);
+
+  React.useEffect(() => { subtitlesEnabledRef.current = subtitlesEnabled; }, [subtitlesEnabled]);
+  React.useEffect(() => { subtitleFontSizeRef.current = subtitleFontSize; }, [subtitleFontSize]);
+  React.useEffect(() => { subtitleBgOpacityRef.current = subtitleBgOpacity; }, [subtitleBgOpacity]);
+  React.useEffect(() => { activeTextRef.current = activeText; }, [activeText]);
 
   React.useEffect(() => {
     async function initSegmenter() {

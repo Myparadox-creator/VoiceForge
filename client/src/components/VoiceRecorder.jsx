@@ -72,7 +72,7 @@ export default function VoiceRecorder({ onRecordingReady, disabled = false }) {
   }
 
   async function startRecording() {
-    if (isInitializing || isRecording) return;
+    if (isInitializing || isRecording || isExtracting) return;
     didFinalizeRef.current = false;
     setIsInitializing(true);
     setRecorderError("");
@@ -182,7 +182,7 @@ export default function VoiceRecorder({ onRecordingReady, disabled = false }) {
 
   async function handleFileUpload(event) {
     const file = event.target.files?.[0];
-    if (!file) return;
+    if (!file || isRecording || isInitializing) return;
     setIsExtracting(true);
     setRecorderError("");
     try {

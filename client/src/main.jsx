@@ -29,10 +29,10 @@ class ErrorBoundary extends React.Component {
             {this.state.error?.stack || this.state.error?.toString()}
           </pre>
           <button
-            onClick={() => { localStorage.clear(); sessionStorage.clear(); window.location.reload(); }}
+            onClick={() => window.location.reload()}
             style={{ marginTop: "15px", padding: "10px 20px", background: "#d9363e", color: "#fff", border: "none", borderRadius: "5px", cursor: "pointer", fontWeight: "bold" }}
           >
-            Clear Cache & Reload App
+            Reload App
           </button>
         </div>
       );

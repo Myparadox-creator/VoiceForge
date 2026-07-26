@@ -267,6 +267,29 @@ const addMessage = useCallback((text, lang = "en-US") => {
     setFavorites(cleanedFavorites);
   }, [history, favorites]);
 
+  const addTag = useCallback((id, tag) => {
+    const cleanTag = tag.trim().replace(/^#/, "");
+    if (!cleanTag) return;
+    setHistory((prev) =>
+      prev.map((msg) => {
+        if (msg.id !== id) return msg;
+        const currentTags = Array.isArray(msg.tags) ? msg.tags : [];
+        if (currentTags.includes(cleanTag)) return msg;
+        return { ...msg, tags: [...currentTags, cleanTag] };
+      })
+    );
+  }, []);
+
+  const removeTag = useCallback((id, tagToRemove) => {
+    setHistory((prev) =>
+      prev.map((msg) => {
+        if (msg.id !== id) return msg;
+        const currentTags = Array.isArray(msg.tags) ? msg.tags : [];
+        return { ...msg, tags: currentTags.filter((t) => t !== tagToRemove) };
+      })
+    );
+  }, []);
+
   return {
     history,
     favorites,
@@ -277,5 +300,7 @@ const addMessage = useCallback((text, lang = "en-US") => {
     toggleFavorite,
     clearHistory,
     importBackup,
+    addTag,
+    removeTag,
   };
 }
