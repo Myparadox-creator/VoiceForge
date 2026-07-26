@@ -13,6 +13,13 @@ const ANALYTICS_KEY = "vf_analytics_history";
 const MAX_HISTORY = 25;
 const MAX_ANALYTICS = 2000;
 
+function generateUUID() {
+  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+    return crypto.randomUUID();
+  }
+  return Math.random().toString(36).substring(2, 11) + Date.now().toString(36);
+}
+
 /**
  * Safely reads a JSON value from localStorage.
  * Returns `fallback` if the key is missing or the value is unparseable.
@@ -156,7 +163,7 @@ const addMessage = useCallback((text, lang = "en-US") => {
 ]);
 
   setAnalyticsHistory((prev) => {
-    const newEntry = { id: crypto.randomUUID(), text: trimmed, timestamp, language: lang };
+    const newEntry = { id: generateUUID(), text: trimmed, timestamp, language: lang };
     const updated = [newEntry, ...prev];
     return updated.slice(0, MAX_ANALYTICS);
   });
@@ -169,7 +176,7 @@ const addMessage = useCallback((text, lang = "en-US") => {
     // so re-spoken messages sort correctly after a page reload.
     const updatedEntry = existing
       ? { ...existing, timestamp: Date.now(), tags: Array.isArray(existing.tags) ? existing.tags : [] }
-      : { id: crypto.randomUUID(), text: trimmed, timestamp: Date.now(), tags: [] };
+      : { id: generateUUID(), text: trimmed, timestamp: Date.now(), tags: [] };
 
     // Move duplicate to top instead of recreating
     const updated = [
