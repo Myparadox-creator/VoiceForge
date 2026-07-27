@@ -57,7 +57,6 @@ export default React.forwardRef(function VideoPreview({
       console.error("PiP error:", error);
     }
   };
->>>>>>> upstream/main
 
   const [blurEnabled, setBlurEnabled] = React.useState(false);
   const segmenterRef = React.useRef(null);

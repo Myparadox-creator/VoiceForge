@@ -235,31 +235,6 @@ export default function VoiceRecorder({ onRecordingReady, disabled = false }) {
     }
   }
 
-  async function handleFileUpload(event) {
-    const file = event.target.files?.[0];
-    if (!file || isRecording || isInitializing) return;
-    setIsExtracting(true);
-    setRecorderError("");
-    try {
-      const { blob, duration: fileDuration } = await extractAudioFromFile(file);
-      setRawAudioBlob(blob);
-      const url = URL.createObjectURL(blob);
-      setAudioUrl((previous) => {
-        if (previous) URL.revokeObjectURL(previous);
-        return url;
-      });
-      setDuration(fileDuration);
-      durationRef.current = fileDuration;
-      chunksRef.current = [blob];
-      onRecordingReady(blob, fileDuration);
-    } catch (err) {
-      setRecorderError(err?.message || "Failed to process audio file.");
-    } finally {
-      setIsExtracting(false);
-      if (fileInputRef.current) fileInputRef.current.value = "";
-    }
-  }
-
   function stopRecording() {
     if (durationRef.current < MIN_DURATION) {
       const confirmStop = window.confirm(
