@@ -33,16 +33,17 @@ export default function VoiceRecorder({ onRecordingReady, disabled = false }) {
   const processFile = async (file) => {
     setIsExtracting(true);
     setRecorderError("");
-    setRawAudioBlob(null);
     try {
-      const { audioBlob, duration: extDuration } = await extractAudioFromFile(file);
+      const res = await extractAudioFromFile(file);
+      const audioBlob = res?.audioBlob || res?.blob;
+      if (!audioBlob) throw new Error("Invalid audio extracted from file.");
       setRawAudioBlob(audioBlob);
       const url = URL.createObjectURL(audioBlob);
       setAudioUrl(previous => {
         if (previous) URL.revokeObjectURL(previous);
         return url;
       });
-      const roundedDuration = Math.round(extDuration);
+      const roundedDuration = Math.round(res.duration || 0);
       setDuration(roundedDuration);
       durationRef.current = roundedDuration;
       chunksRef.current = [audioBlob];
@@ -400,7 +401,7 @@ export default function VoiceRecorder({ onRecordingReady, disabled = false }) {
         <button
           type="button"
           onClick={isRecording ? stopRecording : startRecording}
-          disabled={disabled || isInitializing}
+          disabled={disabled || isInitializing || isExtracting}
           className={`inline-flex items-center justify-center gap-2 rounded-md px-5 py-3 font-bold text-white transition ${
             isRecording
               ? "bg-coral hover:bg-coral/90"

@@ -221,6 +221,8 @@ export default function Call() {
     } catch (err) {
       console.error("TTS streaming error:", err);
       showToast("Speech generation failed", "error");
+    } finally {
+      setActiveText("");
     }
   }
 
