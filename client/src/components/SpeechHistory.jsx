@@ -31,19 +31,30 @@ export function SpeechHistory({
   const allUniqueTags = useMemo(() => {
     const tagsSet = new Set();
     history.forEach((msg) => {
-      if (Array.isArray(msg.tags)) {
-        msg.tags.forEach((t) => tagsSet.add(t));
+      if (Array.isArray(msg?.tags)) {
+        msg.tags.forEach((t) => {
+          if (typeof t === "string" && t.trim()) {
+            tagsSet.add(t.trim());
+          }
+        });
       }
     });
     return Array.from(tagsSet);
   }, [history]);
 
+  React.useEffect(() => {
+    if (selectedTag !== "All Tags" && !allUniqueTags.includes(selectedTag)) {
+      setSelectedTag("All Tags");
+    }
+  }, [allUniqueTags, selectedTag]);
+
   const analyticsData = useMemo(() => {
-    const totalSentences = history.length;
-    const totalWords = history.reduce((acc, msg) => acc + (msg.text ? msg.text.split(/\s+/).length : 0), 0);
+    const source = sessionTranscript && sessionTranscript.length > 0 ? sessionTranscript : history;
+    const totalSentences = source.length;
+    const totalWords = source.reduce((acc, msg) => acc + (msg?.text ? msg.text.split(/\s+/).length : 0), 0);
     const counts = {};
-    history.forEach((msg) => {
-      if (msg.text) {
+    source.forEach((msg) => {
+      if (msg?.text) {
         const key = msg.text.trim();
         counts[key] = (counts[key] || 0) + 1;
       }
@@ -53,7 +64,7 @@ export function SpeechHistory({
       .slice(0, 3)
       .map(([text, count]) => ({ text, count }));
     return { totalSentences, totalWords, top };
-  }, [history]);
+  }, [history, sessionTranscript]);
 
   const handleExport = () => {
     try {
@@ -90,6 +101,10 @@ export function SpeechHistory({
         typeof message.timestamp !== "number"
       ) {
         return false;
+      }
+      if (message.tags !== undefined) {
+        if (!Array.isArray(message.tags)) return false;
+        message.tags = message.tags.filter((t) => typeof t === "string" && t.trim() !== "").map((t) => t.trim());
       }
     }
 
@@ -139,14 +154,14 @@ export function SpeechHistory({
     let messages = tab === "pinned" ? history.filter((message) => favorites.has(message.id)) : history;
 
     if (selectedTag !== "All Tags") {
-      messages = messages.filter((message) => message.tags && message.tags.includes(selectedTag));
+      messages = messages.filter((message) => Array.isArray(message.tags) && message.tags.includes(selectedTag));
     }
 
     if (debouncedSearch.trim()) {
       const query = debouncedSearch.toLowerCase();
       messages = messages.filter((message) => 
-        message.text.toLowerCase().includes(query) ||
-        (message.tags && message.tags.some(t => t.toLowerCase().includes(query)))
+        (message.text && message.text.toLowerCase().includes(query)) ||
+        (Array.isArray(message.tags) && message.tags.some((t) => typeof t === "string" && t.toLowerCase().includes(query)))
       );
     }
 

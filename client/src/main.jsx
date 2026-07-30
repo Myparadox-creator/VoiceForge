@@ -26,7 +26,9 @@ class ErrorBoundary extends React.Component {
           <h2 style={{ color: "#d9363e", marginTop: 0 }}>VoiceForge Startup Error</h2>
           <p>An unexpected error occurred while rendering the application:</p>
           <pre style={{ background: "#222", color: "#fff", padding: "15px", borderRadius: "5px", overflowX: "auto", fontSize: "13px" }}>
-            {this.state.error?.stack || this.state.error?.toString()}
+            {import.meta.env.DEV
+              ? (this.state.error?.stack || this.state.error?.toString())
+              : "An unexpected error occurred. Please reload the application or contact support."}
           </pre>
           <button
             onClick={() => window.location.reload()}

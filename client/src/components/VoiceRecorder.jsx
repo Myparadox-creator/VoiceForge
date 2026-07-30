@@ -35,6 +35,7 @@ export default function VoiceRecorder({ onRecordingReady, disabled = false }) {
     setRecorderError("");
     try {
       const res = await extractAudioFromFile(file);
+      if (!isMountedRef.current) return;
       const audioBlob = res?.audioBlob || res?.blob;
       if (!audioBlob) throw new Error("Invalid audio extracted from file.");
       setRawAudioBlob(audioBlob);
@@ -49,10 +50,13 @@ export default function VoiceRecorder({ onRecordingReady, disabled = false }) {
       chunksRef.current = [audioBlob];
       onRecordingReady(audioBlob, { duration: roundedDuration, isValid: roundedDuration >= MIN_DURATION });
     } catch (err) {
+      if (!isMountedRef.current) return;
       console.error(err);
       setRecorderError(err.message || "Failed to extract audio from file.");
     } finally {
-      setIsExtracting(false);
+      if (isMountedRef.current) {
+        setIsExtracting(false);
+      }
     }
   };
 

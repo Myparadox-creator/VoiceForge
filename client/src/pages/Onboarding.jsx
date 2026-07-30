@@ -204,7 +204,15 @@ export default function Onboarding({ onReady }) {
   const [serverStatus, setServerStatus] = React.useState({ isMock: false, space: "" });
 
   const handleRecordingReady = React.useCallback((blobArg, metaArg) => {
+    if (!blobArg) {
+      setRecording(null);
+      return;
+    }
     let blob = blobArg instanceof Blob ? blobArg : blobArg?.blob;
+    if (!blob && !(blobArg instanceof Blob)) {
+      setRecording(null);
+      return;
+    }
     let duration = 0;
     let isValid = false;
 

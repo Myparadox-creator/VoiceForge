@@ -55,7 +55,7 @@ const staticDistPath = path.resolve(__dirname, "../client/dist");
 app.use(express.static(staticDistPath));
 
 app.use((req, res, next) => {
-  if (req.path.startsWith("/api")) {
+  if (req.method !== "GET" || req.path.startsWith("/api") || !req.headers.accept?.includes("text/html")) {
     return next();
   }
   res.sendFile(path.join(staticDistPath, "index.html"), (err) => {
