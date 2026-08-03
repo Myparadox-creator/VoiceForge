@@ -15,15 +15,35 @@ import { LanguageSelector } from "./LanguageSelector.jsx";
 import { loadLanguage, persistLanguage } from "../utils/languages.js";
 import useTTS from "../hooks/useTTS.js";
 import { getActiveVoiceProfile } from "../hooks/useVoiceClone.js";
+import { useUnsavedChanges } from "../hooks/useUnsavedChanges.js";
 
 const MAX_CHARS = 300;
+const DRAFT_KEY = "voiceforge_composer_draft_text";
 
 export default function VoiceForge() {
-  const [inputText, setInputText] = useState("");
+  const [inputText, setInputText] = useState(() => {
+    try {
+      return sessionStorage.getItem(DRAFT_KEY) || "";
+    } catch {
+      return "";
+    }
+  });
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [language, setLanguage] = useState(loadLanguage);
   const [historyOpen, setHistoryOpen] = useState(false);
   const drawerRef = useRef(null);
+
+  useEffect(() => {
+    try {
+      if (inputText.length > 0) {
+        sessionStorage.setItem(DRAFT_KEY, inputText);
+      } else {
+        sessionStorage.removeItem(DRAFT_KEY);
+      }
+    } catch {}
+  }, [inputText]);
+
+  useUnsavedChanges(inputText.trim().length > 0);
 
   const [announcement, setAnnouncement] = useState("");
   const textareaRef = useRef(null);
@@ -141,6 +161,10 @@ export default function VoiceForge() {
     speak(text);
     addMessage(text, language);
     showToast("Saved to history", "success");
+    setInputText("");
+    try {
+      sessionStorage.removeItem(DRAFT_KEY);
+    } catch {}
   }, [inputText, speak, addMessage, showToast, language]);
 
   const handleReplay = useCallback((text) => {
