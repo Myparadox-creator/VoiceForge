@@ -2,6 +2,7 @@
 import React from "react";
 import { SendHorizontal } from "lucide-react";
 import { loadVoiceSettings } from "../utils/voiceSettings.js";
+import { useUnsavedChanges } from "../hooks/useUnsavedChanges.js";
 
 /**
  * Emotion presets define prompt engineering text and voice_settings overrides
@@ -64,11 +65,30 @@ const EMOTION_PRESETS = [
 ];
 
 const MAX_CHARS = 300;
+const DRAFT_KEY = "voiceforge_draft_text";
 
 export default function TextToSpeech({ onSpeak, disabled = false, status = "idle" }) {
-  const [text, setText] = React.useState("");
+  const [text, setText] = React.useState(() => {
+    try {
+      return sessionStorage.getItem(DRAFT_KEY) || "";
+    } catch (e) {
+      return "";
+    }
+  });
   const [activeEmotion, setActiveEmotion] = React.useState("neutral");
   const trimmedText = text.trim();
+
+  React.useEffect(() => {
+    try {
+      if (text.length > 0) {
+        sessionStorage.setItem(DRAFT_KEY, text);
+      } else {
+        sessionStorage.removeItem(DRAFT_KEY);
+      }
+    } catch (e) {}
+  }, [text]);
+
+  useUnsavedChanges(trimmedText.length > 0);
 
 const characterCount = text.length;
 const charsLeft = MAX_CHARS - characterCount;
@@ -101,25 +121,26 @@ if (estimatedDuration > 30) {
   }
 
   async function submit() {
-  if (!trimmedText || disabled) return;
+    if (!trimmedText || disabled || characterCount > MAX_CHARS) return;
 
-  // Build the final text with the emotion prompt prefix
-  const finalText = activePreset.promptPrefix
-    ? `${activePreset.promptPrefix}${trimmedText}`
-    : trimmedText;
+    // Build the final text with the emotion prompt prefix
+    const finalText = activePreset.promptPrefix
+      ? `${activePreset.promptPrefix}${trimmedText}`
+      : trimmedText;
 
-  // Merge emotion overrides on top of the user's saved voice settings
-  let voice_settings_override = undefined;
-  if (Object.keys(activePreset.settingsOverride).length > 0) {
-    const base = loadVoiceSettings();
-    voice_settings_override = { ...base, ...activePreset.settingsOverride };
+    // Merge emotion overrides on top of the user's saved voice settings
+    let voice_settings_override = undefined;
+    if (Object.keys(activePreset.settingsOverride).length > 0) {
+      const base = loadVoiceSettings();
+      voice_settings_override = { ...base, ...activePreset.settingsOverride };
+    }
+
+    await onSpeak(finalText, voice_settings_override);
+    setText("");
+    try {
+      sessionStorage.removeItem(DRAFT_KEY);
+    } catch (e) {}
   }
-
-  await onSpeak(finalText, voice_settings_override);
-  if (!trimmedText || disabled || characterCount > MAX_CHARS) return;
-  await onSpeak(trimmedText);
-  setText("");
-}
 
   function handleKeyDown(event) {
     if (event.key === "Enter" && !event.shiftKey) {

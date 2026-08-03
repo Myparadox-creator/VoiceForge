@@ -4,6 +4,7 @@ import { CheckCircle2, Loader2, CircleAlert, ArrowRight, RotateCcw } from "lucid
 import VoiceRecorder from "../components/VoiceRecorder.jsx";
 import useVoiceClone from "../hooks/useVoiceClone.js";
 import { useToast, ToastContainer } from "../components/useToast.jsx";
+import { useUnsavedChanges } from "../hooks/useUnsavedChanges.js";
 
 import {
   DEFAULT_VOICE_SETTINGS,
@@ -202,6 +203,8 @@ export default function Onboarding({ onReady }) {
   const { toasts, showToast } = useToast();
   const isCloning = status === "cloning";
   const [serverStatus, setServerStatus] = React.useState({ isMock: false, space: "" });
+
+  useUnsavedChanges((Boolean(recording?.blob) || isCloning) && !successProfile);
 
   const handleRecordingReady = React.useCallback((blobArg, metaArg) => {
     if (!blobArg) {
