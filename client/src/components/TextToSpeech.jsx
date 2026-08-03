@@ -157,7 +157,10 @@ if (estimatedDuration > 30) {
           <p className="mt-1 text-sm text-ink/65 dark:text-muted">Press Enter to speak. Shift + Enter adds a new line.</p>
         </div>
         <div className="text-right">
-  <span className={["rounded-md border border-ink/10 px-3 py-1 text-sm font-semibold dark:border-border", getCounterColor()].join(" ")}>
+  <span
+    aria-label="Character count"
+    className={["rounded-md border border-ink/10 px-3 py-1 text-sm font-semibold dark:border-border", getCounterColor()].join(" ")}
+  >
     {characterCount} / {MAX_CHARS}
   </span>
 
@@ -213,10 +216,12 @@ if (estimatedDuration > 30) {
       </div>
 
       <textarea
+        id="tts-input"
         value={text}
         onChange={(event) => setText(event.target.value.slice(0, 300))}
         onKeyDown={handleKeyDown}
         disabled={disabled}
+        aria-label="Text to speak"
         aria-describedby="tts-char-hint"
         className={["min-h-64 flex-1 resize-none rounded-md border bg-cloud p-4 text-lg leading-8 text-ink outline-none transition focus:ring-4 disabled:cursor-not-allowed disabled:opacity-60 dark:bg-black dark:text-neutral-100 dark:placeholder:text-neutral-500",
           charsLeft < 0

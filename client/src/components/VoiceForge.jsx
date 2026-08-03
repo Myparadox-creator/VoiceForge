@@ -32,6 +32,7 @@ export default function VoiceForge() {
   const [language, setLanguage] = useState(loadLanguage);
   const [historyOpen, setHistoryOpen] = useState(false);
   const drawerRef = useRef(null);
+  const historyToggleRef = useRef(null);
 
   useEffect(() => {
     try {
@@ -113,7 +114,7 @@ export default function VoiceForge() {
   }, []);
 
   const speak = useCallback(async (text) => {
-    if (!text.trim()) return;
+    if (!text.trim()) return null;
 
     if (useClonedVoice && activeProfile?.voice_id) {
       try {
@@ -126,6 +127,7 @@ export default function VoiceForge() {
         if (result?.fallback) {
           showToast("Using browser voice fallback", "info");
         }
+        return result;
       } catch (err) {
         console.error("TTS speech error:", err);
         showToast("Speech generation failed", "error");
@@ -148,18 +150,22 @@ export default function VoiceForge() {
         showToast("Speech playback failed", "error");
       };
       window.speechSynthesis.speak(utterance);
+      return null;
     }
   }, [ttsSpeak, activeProfile, language, useClonedVoice, showToast]);
 
-  const handleSpeak = useCallback(() => {
+  const handleSpeak = useCallback(async () => {
     const text = inputText.trim();
     if (!text) {
       showToast("Please type a message first", "error");
       textareaRef.current?.focus();
       return;
     }
-    speak(text);
-    addMessage(text, language);
+    const msgId = addMessage(text, language);
+    const result = await speak(text);
+    if (result?.blob && msgId) {
+      saveAudioBlob(msgId, result.blob).catch(err => console.error("Cache save error:", err));
+    }
     showToast("Saved to history", "success");
     setInputText("");
     try {
@@ -167,8 +173,33 @@ export default function VoiceForge() {
     } catch {}
   }, [inputText, speak, addMessage, showToast, language]);
 
-  const handleReplay = useCallback((text) => {
-    speak(text);
+  const handleReplay = useCallback(async (id, text) => {
+    if (!text && typeof id === "string") {
+      text = id;
+      id = null;
+    }
+    if (id) {
+      try {
+        const cachedBlob = await getAudioBlob(id);
+        if (cachedBlob) {
+           const localUrl = URL.createObjectURL(cachedBlob);
+           const audio = new Audio(localUrl);
+           audio.onplay = () => setIsSpeaking(true);
+           audio.onended = () => setIsSpeaking(false);
+           audio.onpause = () => setIsSpeaking(false);
+           audio.onerror = () => setIsSpeaking(false);
+           audio.play();
+           showToast("Instant replay from cache", "success");
+           return;
+        }
+      } catch (err) {
+        console.error("Failed to load cached audio", err);
+      }
+    }
+    const result = await speak(text);
+    if (result?.blob && id) {
+       saveAudioBlob(id, result.blob).catch(console.error);
+    }
     showToast("Replaying...", "info");
   }, [speak, showToast]);
 
@@ -224,6 +255,55 @@ export default function VoiceForge() {
     if (historyOpen && drawerRef.current) {
       drawerRef.current.focus();
     }
+  }, [historyOpen]);
+
+  // Restore focus to the history toggle button when drawer closes
+  const prevHistoryOpen = useRef(historyOpen);
+  useEffect(() => {
+    if (prevHistoryOpen.current && !historyOpen) {
+      historyToggleRef.current?.focus();
+    }
+    prevHistoryOpen.current = historyOpen;
+  }, [historyOpen]);
+
+  // Escape key closes the history drawer
+  useEffect(() => {
+    if (!historyOpen) return;
+    function handleEscape(event) {
+      if (event.key === "Escape") {
+        setHistoryOpen(false);
+      }
+    }
+    window.addEventListener("keydown", handleEscape);
+    return () => window.removeEventListener("keydown", handleEscape);
+  }, [historyOpen]);
+
+  // Focus trap inside the history drawer when open on mobile
+  useEffect(() => {
+    if (!historyOpen || !drawerRef.current) return;
+
+    function handleTab(event) {
+      if (event.key !== "Tab") return;
+      const focusable = drawerRef.current.querySelectorAll(
+        'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+      );
+      if (focusable.length === 0) return;
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (event.shiftKey) {
+        if (document.activeElement === first || document.activeElement === drawerRef.current) {
+          event.preventDefault();
+          last.focus();
+        }
+      } else {
+        if (document.activeElement === last) {
+          event.preventDefault();
+          first.focus();
+        }
+      }
+    }
+    window.addEventListener("keydown", handleTab);
+    return () => window.removeEventListener("keydown", handleTab);
   }, [historyOpen]);
 
   useEffect(() => {
@@ -283,7 +363,7 @@ export default function VoiceForge() {
           sessionTranscript={sessionTranscript}
           onReuse={(text) => { handleReuse(text); setHistoryOpen(false); }}
           onReplay={handleReplay}
-          onToggleFav={toggleFavorite}
+          onToggleFav={handleToggleFavorite}
           onDelete={removeMessage}
           onClearHistory={clearHistory}
           onCopy={handleCopy}
@@ -299,9 +379,11 @@ export default function VoiceForge() {
         <header className="flex flex-shrink-0 items-center gap-2 border-b border-neutral-200 px-4 py-3 dark:border-border dark:bg-black sm:px-5 sm:py-3.5">
           {/* Mobile: history toggle */}
           <button
+            ref={historyToggleRef}
             className="mr-1 flex h-7 w-7 flex-shrink-0 items-center justify-center rounded border border-neutral-200 text-neutral-500 transition hover:bg-neutral-100 lg:hidden dark:border-border dark:text-neutral-400"
             onClick={() => setHistoryOpen((o) => !o)}
             aria-label={historyOpen ? "Close history" : "Open history"}
+            aria-expanded={historyOpen}
           >
             {historyOpen ? <X size={15} aria-hidden="true" /> : <History size={15} aria-hidden="true" />}
           </button>
