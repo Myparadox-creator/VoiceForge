@@ -4,6 +4,7 @@ import { useTheme } from "./ThemeContext";
 import { useEffect, useRef } from "react";
 import { AudioProcessor } from "../utils/audioProcessor";
 import { FaceProcessor } from "../utils/faceProcessor";
+import { applyAudioOutput } from "../utils/audioOutput";
 
 export default React.forwardRef(function VideoPreview({
   webcamStream,
@@ -23,6 +24,10 @@ export default React.forwardRef(function VideoPreview({
   const audioRef = useRef(null);   
   const audioProcessorRef = useRef(null);
   const faceProcessorRef = useRef(null);
+  const subtitlesEnabledRef = React.useRef(subtitlesEnabled);
+  const subtitleTextRef = React.useRef(subtitleText);
+  const subtitleFontSizeRef = React.useRef(subtitleFontSize);
+  const subtitleBgOpacityRef = React.useRef(Number(subtitleBgOpacity));
   const ortSessionRef = useRef(null);
   const waveRef = useRef(null);
   const [modelStatus, setModelStatus] = React.useState(
@@ -57,7 +62,6 @@ export default React.forwardRef(function VideoPreview({
       console.error("PiP error:", error);
     }
   };
-
   const [blurEnabled, setBlurEnabled] = React.useState(false);
   const segmenterRef = React.useRef(null);
   const isSegmentingRef = React.useRef(false);
@@ -67,6 +71,22 @@ export default React.forwardRef(function VideoPreview({
   React.useEffect(() => { subtitleFontSizeRef.current = subtitleFontSize; }, [subtitleFontSize]);
   React.useEffect(() => { subtitleBgOpacityRef.current = subtitleBgOpacity; }, [subtitleBgOpacity]);
   React.useEffect(() => { activeTextRef.current = activeText; }, [activeText]);
+
+  React.useEffect(() => {
+    subtitlesEnabledRef.current = subtitlesEnabled;
+  }, [subtitlesEnabled]);
+
+  React.useEffect(() => {
+    subtitleTextRef.current = subtitleText;
+  }, [subtitleText]);
+
+  React.useEffect(() => {
+    subtitleFontSizeRef.current = subtitleFontSize;
+  }, [subtitleFontSize]);
+
+  React.useEffect(() => {
+    subtitleBgOpacityRef.current = Number(subtitleBgOpacity);
+  }, [subtitleBgOpacity]);
 
   React.useEffect(() => {
     async function initSegmenter() {
@@ -187,6 +207,21 @@ export default React.forwardRef(function VideoPreview({
   }, [webcamStream]);
 
   React.useEffect(() => {
+    if (audioRef.current) {
+      applyAudioOutput(audioRef.current);
+    }
+  }, [audioUrl]);
+
+  React.useEffect(() => {
+    function handleOutputChange() {
+      if (audioRef.current) {
+        applyAudioOutput(audioRef.current);
+      }
+    }
+    window.addEventListener("voiceforge:audioOutputChanged", handleOutputChange);
+    return () => window.removeEventListener("voiceforge:audioOutputChanged", handleOutputChange);
+  }, []);
+  React.useEffect(() => {
     const canvas = ref.current;
     const context = canvas?.getContext("2d");
     if (!canvas || !context) return undefined;
@@ -271,7 +306,6 @@ export default React.forwardRef(function VideoPreview({
       context.fillRect(0, 0, canvas.width, canvas.height);
 
       const video = videoRef.current;
-
       // Privacy mode: draw static avatar image with object-fit cover
       if (avatarImage && avatarImage.complete && avatarImage.naturalWidth) {
         const imgW = avatarImage.naturalWidth;
@@ -392,7 +426,7 @@ export default React.forwardRef(function VideoPreview({
       if (isSpeaking && subtitlesEnabledRef.current) {
         drawSubtitles(
           context,
-          activeTextRef.current,
+          subtitleTextRef.current,
           subtitleFontSizeRef.current,
           subtitleBgOpacityRef.current
         );
@@ -443,7 +477,7 @@ export default React.forwardRef(function VideoPreview({
               </button>
             )}
           </h2>
-          <p className="mt-1 text-sm text-ink/65 dark:text-muted">
+          <p className="mt-1 text-sm text-ink/65 dark:text-muted" aria-live="polite">
             {modelStatus}
           </p>
         </div>
@@ -470,6 +504,8 @@ export default React.forwardRef(function VideoPreview({
         ref={ref}
         width="960"
         height="540"
+        role="img"
+        aria-label="Lip-synced video output preview"
         className="aspect-video w-full rounded-md bg-black object-cover"
       />
       {audioUrl && (
@@ -480,9 +516,8 @@ export default React.forwardRef(function VideoPreview({
           controls
           src={audioUrl}
           autoPlay
-          onPlay={() => {
-            onSpeakingChange?.(true);
-          }}
+          aria-label="Generated speech audio playback"
+          onPlay={() => onSpeakingChange?.(true)}
           onPause={() => onSpeakingChange?.(false)}
           onEnded={() => onSpeakingChange?.(false)}
           onError={() => onSpeakingChange?.(false)}
